@@ -2,6 +2,9 @@
 
 https://arxiv.org/abs/2302.09880
 
+This code was created and made public because I was not able to get the the original codebase by the authors to work (https://github.com/meghdadk/SCRUB/tree/main). 
+I've taken `thirdparty/repdistiller` mostly [from their code](https://github.com/meghdadk/SCRUB/tree/main/thirdparty/repdistiller). 
+
 ## How to run
 run `scrub_eval.py` or `scrub_eval.ipynb`
 
