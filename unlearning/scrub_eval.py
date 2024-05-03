@@ -13,8 +13,6 @@ from contextlib import redirect_stdout
 from utils import (
     model_factory,
     loader_factory,
-    get_full_model_paths,
-    get_oracle_paths,
 )
 
 from scrub import scrub_wrapper
@@ -64,7 +62,6 @@ def load_model(path, model_factory, ds_name):
 unlearn_name = "scrub"
 
 #####
-
 config = config_dict
 results = {}
 results["params"] = {}
@@ -101,27 +98,13 @@ with redirect_stdout(open("/dev/null", "w")):
 ####### END OF SETUP ########
 
 ####### LOAD PRETRAINED MODELS ########
-# f stands for "full model",
-#   i.e. the model that was trained on the enitre dataset (retain + forget)
-# o stands for "oracle model"
-#   i.e. the model that was trained on the oracle dataset (retain only)
-
-# inserted by Roy for some speed reason
-splits = ["train", "val"]
-
-f_ckpt_paths, f_logit_paths, f_margins_paths = get_full_model_paths(
-    ds_name, splits=splits)
-(
-    o_ckpt_0_path,  # we only need a single oracle checkpoint
-    o_logit_paths,
-    o_margins_paths,
-) = get_oracle_paths(ds_name, config["forget_set_id"], splits=splits)
-
 # original model
-model = load_model(f_ckpt_paths[0], model_factory, ds_name)
+original_model_path = CWD / "full_model.pt"
+oracle_model_path = CWD / "retrained_oracle.pt"
+model = load_model(original_model_path, model_factory, ds_name)
 
 # oracle model
-oracle_model = load_model(o_ckpt_0_path, model_factory, ds_name)
+oracle_model = load_model(oracle_model_path, model_factory, ds_name)
 
 # unlearning
 unlearned_model = unlearn_fn(
