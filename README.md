@@ -2,8 +2,10 @@
 
 https://arxiv.org/abs/2302.09880
 
+## How to run
+run `scrub_eval.py` or `scrub_eval.ipynb`
 
-High-level intuition of the algorithm
+## High-level intuition of the algorithm
 
 SCRUB:
   1. create teacher (original model), and student (copy of original model)
