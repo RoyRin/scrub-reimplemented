@@ -84,50 +84,6 @@ def load_model(path, model_factory, ds_name):
     return model
 
 
-def get_model_and_loaders(forget_set_id= 4, forget_bs = 64, retain_bs = 64, ds_name = "CIFAR10"):
-
-    # for now, let's tie the model to the dataset, so we have fewer moving pieces
-    model = model_factory(ds_name)  # on cuda, in eval mode
-
-    forget_set_indices = load_forget_set_indices(ds_name,forget_set_id)
-    print(f"getting the dataloaders")
-    with redirect_stdout(open("/dev/null", "w")):
-        # no shuffling, no augmentation
-        train_loader = loader_factory(ds_name, indexed=False)
-        val_loader = loader_factory(ds_name, split="val", indexed=False)
-        total_train_set = len(train_loader.dataset)
-        retain_inds = np.setdiff1d(np.arange(total_train_set), forget_set_indices)
-        retain_loader = loader_factory(ds_name, indices=retain_inds, indexed=False, batch_size=retain_bs)
-
-        forget_loader = loader_factory(
-            ds_name,
-            indices=forget_set_indices,
-            batch_size=forget_bs,
-            indexed=False,
-        )
-        eval_set_inds = np.arange(
-            len(train_loader.dataset) + len(val_loader.dataset))
-        eval_loader = loader_factory(ds_name,
-                                     split="train_and_val",
-                                     indices=eval_set_inds,
-                                     indexed=False)
-    # inserted by Roy for some speed reason
-    splits = ["train", "val"]
-    print(f"loading the model!")
-    f_ckpt_paths, f_logit_paths, f_margins_paths = get_full_model_paths(
-        ds_name, splits=splits)
-    (
-        o_ckpt_0_path,  # we only need a single oracle checkpoint
-        o_logit_paths,
-        o_margins_paths,
-    ) = get_oracle_paths(ds_name, forget_set_id, splits=splits)
-    print(f"Loaded paths of pretrained models.")
-
-    full_model = load_model(f_ckpt_paths[0], model_factory, ds_name)
-    return full_model, (train_loader, val_loader, forget_loader, retain_loader, eval_loader), forget_set_indices
-
-
-
 def l2_difference(model1, model2):
     l2_diff = 0.0
     # Ensure both models are in the same state (e.g., both in eval mode)
@@ -146,7 +102,6 @@ def l2_difference(model1, model2):
 
     # Return the square root of the sum of squared differences
     return l2_diff**0.5
-
 
 
 def scrub_loop(args,
@@ -324,8 +279,10 @@ def scrub_wrapper(model,
 
 
 
-
-def do_set_up():
+#
+# included, purely for reference of waht the parameters are in the arxiv paper
+# 
+def do_set_up(full_model):
     args.optim = 'adam'
     args.gamma = 1
     args.alpha = 0.5
@@ -385,23 +342,3 @@ def do_set_up():
 
     return model_s, criterion_cls, module_list, swa_model, criterion_list, optimizer
 
-
-if __name__ == "__main__":
-
-    forget_set_id = 4
-
-    full_model, loaders, forget_set_indices = get_model_and_loaders(forget_set_id= forget_set_id,  ds_name = "CIFAR10")
-
-    (train_loader, val_loader, forget_loader, retain_loader, eval_loader) = loaders
-
-
-    # set it up
-    model_s, criterion_cls, module_list, swa_model, criterion_list, optimizer = do_set_up()
-
-    #scrub it
-
-    scrub_loop(args, optimizer, model_s, criterion_cls, module_list, swa_model, criterion_list, retain_loader, forget_loader)
-
-    # save the model
-    torch.save(model_s.state_dict(), "SCRUB.pth")
-    print("Model saved")
